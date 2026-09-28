@@ -1250,38 +1250,15 @@
           };
         }
 
+        // FIX: Estado inicial TOTALMENTE EN BLANCO para Aliados
         let aliadosConfig = null;
         if (type === 'aliados') {
           aliadosConfig = {
             turns: [
               {
                 player: 'A',
-                blocks: [
-                  { type: 'text', content: 'El lenguaje ' },
-                  { type: 'blank', answer: 'HTML', clue: 'Lenguaje de marcado de hipertexto' },
-                  { type: 'text', content: ' estructura el contenido, y ' },
-                  { type: 'blank', answer: 'CSS', clue: 'Hojas de estilo en cascada' },
-                  { type: 'text', content: ' le da estilo visual.' }
-                ],
-                password: 'PASS1',
-                isFinal: false
-              },
-              {
-                player: 'B',
-                blocks: [
-                  { type: 'text', content: 'Para interactividad usamos ' },
-                  { type: 'blank', answer: 'JS', clue: 'JavaScript' },
-                  { type: 'text', content: ' y para bases de datos ' },
-                  { type: 'blank', answer: 'SQL', clue: 'Lenguaje de consultas' }
-                ],
-                password: 'PASS2',
-                isFinal: false
-              },
-              {
-                player: 'A',
-                blocks: [
-                  { type: 'text', content: '¡Felicidades, han completado el reto!' }
-                ],
+                blocks: [{ type: 'text', content: '' }],
+                password: '',
                 isFinal: true
               }
             ]
@@ -1407,38 +1384,15 @@
         turns: [{ player: 'A', blocks: [{ type: 'text', content: '' }], password: '', isFinal: true }]
       };
 
-      let modalHtml = '';
-
-      if (cell.type === 'inicio' || cell.type === 'meta') {
-        const currentText = cell.customText || (cell.type === 'inicio' ? DEFAULT_INICIO_TEXT : DEFAULT_META_TEXT);
-        modalHtml = `
-          <h3>⚙️ Editar Mensaje - Casilla ${cellId} (${cell.type === 'inicio' ? 'Inicio' : 'Meta'})</h3>
-          <div class="form-group">
-            <label>Mensaje:</label>
-            <textarea id="edit-special-text" class="form-control" rows="6">${currentText}</textarea>
-          </div>
-          <div style="display:flex; gap:10px; margin-top:15px;">
-            <button class="btn-action" style="background:linear-gradient(180deg, #4a8a4a 0%, #2d5a2d 100%);" onclick="saveSpecialText(${cellId})">💾 Guardar</button>
-            <button class="btn-action btn-secondary" onclick="closeModal()">Cancelar</button>
-          </div>
-        `;
-      } 
-      else if (cellId === 15) {
-        let currentTypeForSelect = cell.type === 'escalera_entrada' ? 'vacia' : cell.type;
-        modalHtml = buildCellEditor(cellId, cell, qData, retoCfg, aliadosCfg, currentTypeForSelect, true);
-      }
-      else {
-        let currentTypeForSelect = cell.type === 'escalera_entrada' ? 'vacia' : cell.type;
-        modalHtml = buildCellEditor(cellId, cell, qData, retoCfg, aliadosCfg, currentTypeForSelect, false);
-      }
+      let currentTypeForSelect = cell.type === 'escalera_entrada' ? 'vacia' : cell.type;
+      let modalHtml = buildCellEditor(cellId, cell, qData, retoCfg, aliadosCfg, currentTypeForSelect, cellId === 15);
 
       showModal(`Casilla ${cellId}`, modalHtml);
-      
+
+      // FIX: Inicialización robusta y sincrónica del editor de Aliados
       if (currentTypeForSelect === 'aliados') {
-        setTimeout(() => {
-          initAliadosEditor(cell);
-          renderAliadosEditor();
-        }, 50);
+        initAliadosEditor(cell);
+        renderAliadosEditor();
       }
     }
 
@@ -1547,9 +1501,10 @@
     }
 
     function initAliadosEditor(cell) {
-      if (cell.aliadosConfig && cell.aliadosConfig.turns) {
+      if (cell && cell.aliadosConfig && cell.aliadosConfig.turns && cell.aliadosConfig.turns.length > 0) {
         tempAliadosState = JSON.parse(JSON.stringify(cell.aliadosConfig));
       } else {
+        // FIX: Estado inicial estrictamente en blanco
         tempAliadosState = {
           turns: [
             {
@@ -1620,22 +1575,19 @@
               <input type="text" class="form-control" value="${turn.password || ''}" onchange="updateAliadosPassword(${tIdx}, this.value)" placeholder="Ej: WEB123" style="text-transform:uppercase; font-family:var(--font-pixel); letter-spacing:2px; text-align:center;">
             </div>
           `;
+        } else {
+          html += `
+            <div style="background: rgba(244, 196, 48, 0.2); padding: 10px; border-radius: 4px; border: 2px dashed var(--gold-dark); margin-top: 10px;">
+              <label style="font-family:var(--font-pixel); font-size:0.6rem; color:var(--wood-dark); display:block; margin-bottom:5px;">🔑 Contraseña Final de Confirmación:</label>
+              <input type="text" class="form-control" value="${turn.password || ''}" onchange="updateAliadosPassword(${tIdx}, this.value)" placeholder="Ej: FINAL2024" style="text-transform:uppercase; font-family:var(--font-pixel); letter-spacing:2px; text-align:center;">
+            </div>
+          `;
         }
         
         if (isLastTurn) {
-           if (turn.isFinal) {
-             html += `
-               <div style="background: rgba(220, 38, 38, 0.1); padding: 10px; border-radius: 4px; border: 2px solid #dc2626; margin-top: 10px; text-align:center;">
-                 <label style="font-family:var(--font-pixel); font-size:0.65rem; color:#dc2626; display:block; margin-bottom:5px;">🏁 FINAL DEL JUEGO</label>
-                 <p style="font-size:0.75rem; color:var(--text-dark); margin-bottom:8px;">Al llegar aquí, la actividad termina y se muestran los resultados. No se requiere contraseña.</p>
-                 <button type="button" class="btn-action" style="width:100%; margin-top:5px; background:linear-gradient(180deg, #16a34a 0%, #15803d 100%);" onclick="addAliadosTurn()">+ Añadir Turno ${tIdx + 2} (Jugador ${nextPlayer})</button>
-               </div>
-             `;
-           } else {
-             html += `
-               <button type="button" class="btn-action" style="width:100%; margin-top:10px; background:linear-gradient(180deg, #16a34a 0%, #15803d 100%);" onclick="addAliadosTurn()">+ Añadir Turno ${tIdx + 2} (Jugador ${nextPlayer})</button>
-             `;
-           }
+           html += `
+             <button type="button" class="btn-action" style="width:100%; margin-top:10px; background:linear-gradient(180deg, #16a34a 0%, #15803d 100%);" onclick="addAliadosTurn()">+ Añadir Turno ${tIdx + 2} (Jugador ${nextPlayer})</button>
+           `;
         }
 
         html += `</div>`;
@@ -1672,9 +1624,10 @@
 
     function addAliadosTurn() {
       const lastTurn = tempAliadosState.turns[tempAliadosState.turns.length - 1];
-      lastTurn.isFinal = false;
+      lastTurn.isFinal = false; // El turno anterior deja de ser el final
       
       const nextPlayer = lastTurn.player === 'A' ? 'B' : 'A';
+      // FIX: El nuevo turno se agrega TOTALMENTE EN BLANCO
       tempAliadosState.turns.push({
         player: nextPlayer,
         blocks: [{ type: 'text', content: '' }],
@@ -1719,6 +1672,7 @@
       else if (type === 'reto') document.getElementById('reto-form-container').classList.remove('hidden');
       else if (type === 'aliados') {
         document.getElementById('aliados-form-container').classList.remove('hidden');
+        // FIX: Reinicialización forzada al cambiar a aliados para garantizar visibilidad
         const cellId = parseInt(document.querySelector('#game-modal h3').innerText.match(/\d+/)[0]);
         const cell = currentState.boardStructure.find(c => c.id === cellId);
         initAliadosEditor(cell);
